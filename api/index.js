@@ -51,15 +51,12 @@ function searchBookf(){
 			if(globalBook.toUpperCase() === dbBook){
 				bookString = `Found the book "${globalBook}"! Do you want to borrow it?`;
 				console.log(bookString);
-			}else{
-				bookString = "Seems the book you were looking for is unavailable.";
-				console.log(bookString);
 			}
 		});
 	}
 }
 
-function searchCategory(){
+function searchCategoryf(){
 	db.serialize(function() {
 		db.run("CREATE TABLE IF NOT EXISTS user (author TEXT, book TEXT, category TEXT, borrowBook INT)");
 	  });
@@ -75,7 +72,9 @@ function searchCategory(){
 			}
 		});
 	}
-	
+}
+
+function borrowBookf(){
 
 }
 
@@ -98,6 +97,7 @@ export default ({ config, db }) => {
 		const bookCategory = req.body.queryResult.parameters.bookCategory;
 		const getAuthor = req.body.queryResult.parameters.getAuthor;
 		const bookTitle = req.body.queryResult.parameters.bookTitle;
+		const borrowBook = req.body.queryResult.parameters.borrowBook;
 
 		const addBook = req.body.queryResult.parameters.addBook;
 		const addAuthor = req.body.queryResult.parameters.addAuthor;
@@ -112,7 +112,7 @@ export default ({ config, db }) => {
 					botMessage = `Searching category of ${bookCategory}`;
 					//... search available category
 					globalCategory = bookCategory;
-					searchCategory();
+					searchCategoryf();
 					console.log(bookString);
 					res.json({"fulfillmentText" : bookString});
 				break;
@@ -146,7 +146,12 @@ export default ({ config, db }) => {
 						//do something
 					}
 					res.json({"fulfillmentText" : botMessage});
-				break;	
+				break;
+			case 'borrowBook':
+					console.log("In borrowBook");
+					botMessage = `In borrowBook! ${borrowBook}`;
+					res.json({"fulfillmentText" : botMessage});
+				break;
 
 		}
 
