@@ -16,7 +16,7 @@ const con = mysql.createConnection({
 // 	console.log("Connected!");
 
 // 	if (err) throw err;
-// 	con.query("SELECT category FROM user", function (err, result, fields) {
+// 	con.query("SELECT author FROM user", function (err, result, fields) {
 // 	if (err) throw err;
 // 	console.log(result);
 // 	});
@@ -69,7 +69,7 @@ export default ({ config, db }) => {
 							console.log("botMessage: ", botMessage);
 							res.json({"fulfillmentText" : botMessage});
 						}else{
-							res.json({"fulfillmentText" : "The book you were looking for is not available. :("});
+							res.json({"fulfillmentText" : "The category you were looking for is not available. :("});
 						}
 					});
 				});
@@ -82,7 +82,7 @@ export default ({ config, db }) => {
 						if(err){
 							console.log(err);
 						}
-						console.log(result.length);
+						console.log("result.length: ", result.length);
 						
 						if(result.length > 0){
 							for(var i = 0; i < result.length;i++){
@@ -100,9 +100,28 @@ export default ({ config, db }) => {
 					
 				break;
 			case 'getAuthor':
-					botMessage = `Looking for author ${getAuthor[0]}`;
 					//... search author
-					res.json({"fulfillmentText" : botMessage});		
+					con.connect(function(err) {
+						console.log("Connected!");
+						con.query(`SELECT book, author FROM user WHERE author LIKE '%${getAuthor[0]}%'`, function (err, result, fields) {
+						if(err){
+							console.log(err);
+						}
+						console.log("result.length: ", result.length);
+						
+						if(result.length > 0){
+							for(var i = 0; i < result.length;i++){
+								botMessage += `Found author "${result[i].author}" with the book "${result[i].book}"\n\n`
+							}
+							// botMessage = result[0].book;
+							console.log(result);
+							console.log("botMessage: ", botMessage);
+							res.json({"fulfillmentText" : botMessage});
+						}else{
+							res.json({"fulfillmentText" : "The author you were looking for is not available. :("});
+						}
+					});
+				});
 				break;
 			case 'addBook':
 					botMessage = `adding book, Title: ${addBook}, Category: ${bookCategory}, author: ${addAuthor}.`
