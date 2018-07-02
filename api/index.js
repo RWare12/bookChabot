@@ -64,7 +64,6 @@ export default ({ config, db }) => {
 							for(var i = 0; i < Math.floor(result.length/2);i++){
 								botMessage += `Book Title: "${result[i].book}" \nAuthor: "${result[i].author}"\n\n`
 							}
-							// botMessage = result[0].book;
 							console.log(result);
 							console.log("botMessage: ", botMessage);
 							res.json({"fulfillmentText" : botMessage});
@@ -88,7 +87,6 @@ export default ({ config, db }) => {
 							for(var i = 0; i < result.length;i++){
 								botMessage += `Book Title: "${result[i].book}" \nAuthor: "${result[i].author}"\n\n`
 							}
-							// botMessage = result[0].book;
 							console.log(result);
 							console.log("botMessage: ", botMessage);
 							res.json({"fulfillmentText" : botMessage});
@@ -113,7 +111,6 @@ export default ({ config, db }) => {
 							for(var i = 0; i < result.length;i++){
 								botMessage += `Found author "${result[i].author}" with the book "${result[i].book}"\n\n`
 							}
-							// botMessage = result[0].book;
 							console.log(result);
 							console.log("botMessage: ", botMessage);
 							res.json({"fulfillmentText" : botMessage});
@@ -161,4 +158,3 @@ export default ({ config, db }) => {
 
 	return api;	
 }
-
