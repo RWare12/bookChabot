@@ -2,123 +2,25 @@ import { version } from '../../package.json';
 import { Router } from 'express';
 import facets from './facets';
 
-var bookString;
-var searchBookMessage;
-var borrowBookMessage;
-var globalBook;
-var globalBorrowBook;
-var globalCategory;
-var showBorrowBook = "";
 
-var sqlite3 = require('sqlite3').verbose();
-var db = new sqlite3.Database('libraryDb');
-var listCategory = [];
+var mysql = require('mysql');
+const con = mysql.createConnection({
+	host: "localhost",
+	user: "root",
+	password: "root",
+	database: "mydb"
+  });
 
-db.serialize(function() {
-  db.run("CREATE TABLE IF NOT EXISTS user (author TEXT, book TEXT, category TEXT, borrowBook INT)");
+// con.connect(function(err) {
+// 	if (err) throw err;
+// 	console.log("Connected!");
 
-});
-
-// db.each("SELECT author, book, category, borrowBook FROM user", function(err, row) {
-	// console.log("Author: "+ row.author," Book: " + row.book," Category: " + row.category, "Book borrowed: " + row.borrowBook);
-	// console.log("Category: "+ row.category.toUpperCase());
-// 	if (row.borrowBook == 1){
-// 		console.log("borrowed book is ", row.author);
-// 	}
-
+// 	if (err) throw err;
+// 	con.query("SELECT category FROM user", function (err, result, fields) {
+// 	if (err) throw err;
+// 	console.log(result);
+// 	});
 // });
-// db.close();
-
-function insertData(bookTitle, bookCategory, bookAuthor){
-	db.serialize(function() {
-		db.run("CREATE TABLE IF NOT EXISTS user (author TEXT, book TEXT, category TEXT, borrowBook INT)");
-	  
-	    var stmt = db.prepare("INSERT INTO user VALUES (?,?,?,?)");
-	    stmt.run(bookAuthor, bookTitle, bookCategory, 0);  
-	    stmt.finalize();
-	  
-	    db.each("SELECT author, book, category, borrowBook FROM user", function(err, row) {
-			console.log("Author: "+ row.author," Book: " + row.book," Category: " + row.category, "Borrowed Book: " + row.borrowBook);
-		});
-	  });
-}
-
-function searchBookf(book){
-	db.serialize(function() {
-		db.run("CREATE TABLE IF NOT EXISTS user (author TEXT, book TEXT, category TEXT, borrowBook INT)");
-	  });
-	console.log("book: ", book.toUpperCase());
-	if(book !== ""){
-		db.each("SELECT author FROM user", function(err, row) {
-			var dbBook = row.author.toUpperCase();
-			// if(globalBook.toUpperCase() === dbBook){
-			if(dbBook.includes(book.toUpperCase())){
-				searchBookMessage = `Found the book "${book}"! Do you want to borrow it?`;
-				console.log("in function", searchBookMessage);
-				console.log("TRUE in search function");
-				
-			}
-		});
-	}
-}
-
-function searchCategoryf(){
-	db.serialize(function() {
-		db.run("CREATE TABLE IF NOT EXISTS user (author TEXT, book TEXT, category TEXT, borrowBook INT)");
-	  });
-	console.log("category: ", globalCategory.toUpperCase());
-	bookString = `Books under the category ${globalCategory}: \n`;
-
-	if(globalCategory !== ""){
-		db.each("SELECT category, author FROM user", function(err, row) {
-			var dbCategory = row.category.toUpperCase();
-			if(dbCategory.includes(globalCategory.toUpperCase())){
-				bookString += row.author + " / ";
-				console.log(bookString);
-			}
-		});
-	}
-}
-
-function borrowBookf(){
-	db.serialize(function() {
-		db.run("CREATE TABLE IF NOT EXISTS user (author TEXT, book TEXT, category TEXT, borrowBook INT)");
-	  });
-	console.log("borrowBook: ", globalBorrowBook.toUpperCase());
-	if(globalBorrowBook !== ""){
-		db.each("SELECT author, borrowBook FROM user", function(err, row) {
-			var dbBorrowBook = row.author.toUpperCase();
-			if(dbBorrowBook.includes(globalBorrowBook.toUpperCase())){
-				bookString = "TRUE in borrowBook";
-				console.log(bookString);
-				if(row.borrowBook === 0){
-					db.serialize(function() {
-						db.run(`UPDATE user SET borrowBook = 1 WHERE author = '${row.author}'` );
-						console.log("updated");
-					});
-				}else{
-					console.log("book is borrowed");
-				}
-			}
-		});
-
-	}
-}
-
-function showBorrowBookf(){
-	db.serialize(function() {
-		db.run("CREATE TABLE IF NOT EXISTS user (author TEXT, book TEXT, category TEXT, borrowBook INT)");
-	  });
-
-	db.each("SELECT category, author, borrowBook FROM user", function(err, row) {
-			if(row.borrowBook === 1){
-				showBorrowBook += row.author + "/";
-			}
-		});
-	
-	console.log("in function", showBorrowBook);
-}
-
 
 let bodyParser = require('body-parser');
 
@@ -142,31 +44,60 @@ export default ({ config, db }) => {
 
 		const addBook = req.body.queryResult.parameters.addBook;
 		const addAuthor = req.body.queryResult.parameters.addAuthor;
-		let botMessage;
-		let ctr = 0;
+		let botMessage = "";
 
 		console.log(action);
 
 		switch(action){
 
 			case 'Category':
-					botMessage = `Searching category of ${bookCategory}`;
-					//... search available category
-					globalCategory = bookCategory;
-					bookString = "";
-					searchCategoryf();
-					console.log("bookString",bookString);
-					res.json({"fulfillmentText" : bookString});
+					con.connect(function(err) {
+						console.log("Connected!");
+						console.log("err ", err);
+						console.log("category: ", bookCategory);
+						con.query(`SELECT book, author, category FROM user WHERE category LIKE '%${bookCategory}%'`, function (err, result, fields) {
+						if(err){
+							console.log(err);
+						}
+						console.log(result.length);
+						if(result.length > 0){
+							for(var i = 0; i < Math.floor(result.length/2);i++){
+								botMessage += `Book Title: "${result[i].book}" \nAuthor: "${result[i].author}"\n\n`
+							}
+							// botMessage = result[0].book;
+							console.log(result);
+							console.log("botMessage: ", botMessage);
+							res.json({"fulfillmentText" : botMessage});
+						}else{
+							res.json({"fulfillmentText" : "The book you were looking for is not available. :("});
+						}
+					});
+				});
 				break;
+
 			case 'searchBook':
-					searchBookf(searchBook);
-					botMessage = `Searching book: ${searchBook}`;
-					//... search book in db
-					console.log("in searchBook ", searchBook);
-					console.log("searchBookMessage searchBook:",searchBookMessage);
-					if(searchBookMessage){	
-						res.json({"fulfillmentText" : searchBookMessage});
-					}
+					con.connect(function(err) {
+						console.log("Connected!");
+						con.query(`SELECT book, author FROM user WHERE book LIKE '%${searchBook}%'`, function (err, result, fields) {
+						if(err){
+							console.log(err);
+						}
+						console.log(result.length);
+						
+						if(result.length > 0){
+							for(var i = 0; i < result.length;i++){
+								botMessage += `Book Title: "${result[i].book}" \nAuthor: "${result[i].author}"\n\n`
+							}
+							// botMessage = result[0].book;
+							console.log(result);
+							console.log("botMessage: ", botMessage);
+							res.json({"fulfillmentText" : botMessage});
+						}else{
+							res.json({"fulfillmentText" : "The book you were looking for is not available. :("});
+						}
+					});
+				});
+					
 				break;
 			case 'getAuthor':
 					botMessage = `Looking for author ${getAuthor[0]}`;
@@ -175,7 +106,6 @@ export default ({ config, db }) => {
 				break;
 			case 'addBook':
 					botMessage = `adding book, Title: ${addBook}, Category: ${bookCategory}, author: ${addAuthor}.`
-					insertData(addBook,bookCategory,addAuthor);
 					res.json({"fulfillmentText" : botMessage});
 				break;
 			case 'getBookTitle':
@@ -194,20 +124,14 @@ export default ({ config, db }) => {
 			case 'borrowBook':
 					console.log("In borrowBook");
 					botMessage = `In borrowBook! ${borrowBook}`;
-					globalBorrowBook = borrowBook;
-					bookString = "";
-					borrowBookf();
 					res.json({"fulfillmentText" : botMessage});
 				break;
 			case 'showBorrowBook':
-					showBorrowBookf();
 					console.log(showBorrowBook);
-					res.json({"fulfillmentText" : showBorrowBook});
+					res.json({"fulfillmentText" : "in showBookBook"});
 				break;
 
 		}
-
-		
 	});
 
 	api.get('/', (req, res) => {
