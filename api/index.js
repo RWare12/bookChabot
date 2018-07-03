@@ -11,14 +11,15 @@ const con = mysql.createConnection({
 	database: "mydb"
   });
 
+// table are user and userBook
 // con.connect(function(err) {
 // 	if (err) throw err;
 // 	console.log("Connected!");
-
 // 	if (err) throw err;
-// 	con.query("SELECT author FROM user", function (err, result, fields) {
+// 	con.query("SELECT borrowBook FROM userBook", function (err, result, fields) {
 // 	if (err) throw err;
 // 	console.log(result);
+// 	console.log(result.length);
 // 	});
 // });
 
@@ -40,12 +41,11 @@ export default ({ config, db }) => {
 		const bookCategory = req.body.queryResult.parameters.bookCategory;
 		const getAuthor = req.body.queryResult.parameters.getAuthor;
 		const bookTitle = req.body.queryResult.parameters.bookTitle;
-		const borrowBook = req.body.queryResult.parameters.borrowBook;
+		const borrowBookv = req.body.queryResult.parameters.borrowBook;
 
 		const addBook = req.body.queryResult.parameters.addBook;
 		const addAuthor = req.body.queryResult.parameters.addAuthor;
 		var botMessage = "";
-		var quickreplies;
 
 		console.log(action);
 
@@ -55,7 +55,7 @@ export default ({ config, db }) => {
 					con.connect(function(err) {
 						console.log("Connected!");
 						console.log("err ", err);
-						con.query(`SELECT book, author, category FROM user WHERE category LIKE '%${bookCategory}%'`, function (err, result, fields) {
+						con.query(`SELECT book, author, category FROM userBook WHERE category LIKE '%${bookCategory}%'`, function (err, result, fields) {
 						if(err){
 							console.log(err);
 						}
@@ -75,7 +75,7 @@ export default ({ config, db }) => {
 					con.connect(function(err) {
 						var quickReplies = [];
 						console.log("Connected!");
-						con.query(`SELECT book, author FROM user WHERE book LIKE '%${searchBook}%'`, function (err, result, fields) {
+						con.query(`SELECT book, author FROM userBook WHERE book LIKE '%${searchBook}%'`, function (err, result, fields) {
 						if(err){
 							console.log(err);
 						}
@@ -89,7 +89,7 @@ export default ({ config, db }) => {
 							console.log(result);
 							console.log("botMessage: ", botMessage);
 							// res.json({"fulfillmentText" : botMessage});
-							botMessage += "Just choose the books you want to borrow. :D	"; 
+							botMessage += "Just choose the books you want to borrow. :D	";
 							res.json({"fulfillmentMessages": [{
 								"quickReplies": {
 								"title": botMessage,
@@ -111,7 +111,7 @@ export default ({ config, db }) => {
 					
 					con.connect(function(err) {
 						console.log("Connected!");
-						con.query(`SELECT book, author FROM user WHERE author LIKE '%${getAuthor[0]}%'`, function (err, result, fields) {
+						con.query(`SELECT book, author, img FROM userBook WHERE author LIKE '%${getAuthor[0]}%'`, function (err, result, fields) {
 						console.log("result.length: ", result.length);
 						if(result.length > 0){
 							for(var i = 0; i < result.length;i++){
@@ -125,7 +125,7 @@ export default ({ config, db }) => {
 								"card": {
 								  "title": result[0].book,
 								  "subtitle": result[0].author,
-								  "imageUri": "http://ecx.images-amazon.com/images/I/61t-hrSw9BL.jpg",
+								  "imageUri": result[0].img,
 								  "buttons": [
 									{
 									  "text": textReply
@@ -135,6 +135,7 @@ export default ({ config, db }) => {
 								"platform": "FACEBOOK"
 							  }] 
 							});
+						
 						}else{
 							res.json({"fulfillmentText" : "The author you were looking for is not available. :("});
 						}
@@ -160,27 +161,44 @@ export default ({ config, db }) => {
 				break;
 			case 'borrowBook':
 					console.log("In borrowBook");
-					botMessage = `In borrowBook! ${borrowBook}`;
-					res.json({"fulfillmentText" : botMessage});
-
+					botMessage = `In borrowBook! ${borrowBookv}`;
+					
 					con.connect(function(err) {
 						console.log("Connected!");
 						console.log("err ", err);
-						con.query(`SELECT borrowBook, book FROM user WHERE book LIKE '%${borrowBook}%'`, function (err, result, fields) {
+						con.query(`SELECT author, book, borrowBook FROM userBook WHERE book LIKE '%${borrowBookv}%'`, function (err, result, fields) {
 						if(err){
 							console.log(err);
 						}
+						if(result[0].borrowBook === 0){
+							var sql = `UPDATE userBook SET borrowBook = 1 WHERE book LIKE '%${borrowBookv}%'`;
+							con.query(sql, function (err, result) {
+								botMessage = "You've borrowed the book.";
+								res.json({"fulfillmentText" : botMessage});
+
+							});
+						}else{
+							botMessage = "Book is unavailable or being borrowed.";
+							res.json({"fulfillmentText" : botMessage});
+						}
+						console.log(result[0].borrowBook);
+						console.log("hello");
+						
 					});
 				});
 				break;
 			case 'showBorrowBook':
-					
+					botMessage = "Borrowed book's:\n";
 					con.connect(function(err) {
 						console.log("Connected!");
-						con.query("SELECT author, book, borrowBook FROM user WHERE borrowBook = 1", function (err, result, fields) {
+						con.query("SELECT author, book, borrowBook FROM userBook WHERE borrowBook = 1", function (err, result, fields) {
 						console.log(result);
+						console.log(result.length);
+						for(var i = 0; i < result.length; i++){
+							botMessage += `Book: "${result[i].book}"\nAuthor: "${result[i].author}` ;
+						}
 						if(result.length > 0){
-							res.json({"fulfillmentText" : "You have borrowed a book."});
+							res.json({"fulfillmentText" : botMessage});
 						}else{
 							res.json({"fulfillmentText" : "You have not yet borrowed a book."});
 						}
