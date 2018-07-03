@@ -89,10 +89,10 @@ export default ({ config, db }) => {
 							console.log(result);
 							console.log("botMessage: ", botMessage);
 							// res.json({"fulfillmentText" : botMessage});
-
+							botMessage += "Just choose the books you want to borrow. :D	"; 
 							res.json({"fulfillmentMessages": [{
 								"quickReplies": {
-								"title": "Just choose the books you want to borrow. :D	",
+								"title": botMessage,
 								"quickReplies": quickReplies
 							  },
 								"platform": "FACEBOOK"
@@ -133,7 +133,8 @@ export default ({ config, db }) => {
 								  ]
 								},
 								"platform": "FACEBOOK"
-							  }] });
+							  }] 
+							});
 						}else{
 							res.json({"fulfillmentText" : "The author you were looking for is not available. :("});
 						}
