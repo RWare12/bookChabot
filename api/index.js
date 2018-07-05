@@ -2,6 +2,7 @@ import { version } from '../../package.json';
 import { Router } from 'express';
 import facets from './facets';
 
+const fetch = require('node-fetch');
 
 var mysql = require('mysql');
 const con = mysql.createConnection({
@@ -25,6 +26,42 @@ const con = mysql.createConnection({
 
 let bodyParser = require('body-parser');
 
+export function takeThreadControl(req,res) {
+
+	var body = { 
+		"recipient":{"id":req.body.originalDetectIntentRequest.payload.sender.id},
+		"metadata":"String to pass to the secondary receiver"  
+	 };
+	fetch('https://graph.facebook.com/v2.6/me/take_thread_control?access_token=EAAZAGOggDwlIBAAaaDStAkKS38dYWzm9uppiOZBv2lMJQmRhX29YAcc0YmZA4ZCAUNzgY7BeZBaZCmP1vBf04YadbJ7CZAUFyoOim1sp4WXFuXHtFrF84p86gZAljMosuigHsS0aGvWeyeDBUOwU5GUEzRpGDcX64VqPLdhtMKxzeQZDZD', { 
+		method: 'POST',
+		body:    JSON.stringify(body),
+		headers: { 'Content-Type': 'application/json' },
+	})
+		.then(res => res.json())
+		.then(json => console.log(json));
+
+	res.json({"fulfillmentText": "Passed control to Book rent bot"});
+		
+}
+
+export function passThreadControl(req,res) {
+	var body = { 
+		"recipient":{"id":req.body.originalDetectIntentRequest.payload.data.sender.id},
+		"target_app_id":646775079012691,
+		"metadata":"String to pass to secondary receiver app" 
+	 };
+	fetch('https://graph.facebook.com/v2.6/me/pass_thread_control?access_token=EAAZAGOggDwlIBAAaaDStAkKS38dYWzm9uppiOZBv2lMJQmRhX29YAcc0YmZA4ZCAUNzgY7BeZBaZCmP1vBf04YadbJ7CZAUFyoOim1sp4WXFuXHtFrF84p86gZAljMosuigHsS0aGvWeyeDBUOwU5GUEzRpGDcX64VqPLdhtMKxzeQZDZD', { 
+		method: 'POST',
+		body:    JSON.stringify(body),
+		headers: { 'Content-Type': 'application/json' },
+	})
+		.then(res => res.json())
+		.then(json => console.log(json));
+
+	res.json({"fulfillmentText": "Passed control to alarm bot"});
+		
+}
+
 export default ({ config, db }) => {
 	let api = Router();
 	api.use(bodyParser.urlencoded());
@@ -33,8 +70,18 @@ export default ({ config, db }) => {
 	// mount the facets resource
 	api.use('/facets', facets({ config, db }));
 
-	// perhaps expose some API metadata at the root
-
+	api.post('/alarm', (req, res) => {
+		const data = req.body.originalDetectIntentRequest.payload.sender.id;
+		console.log(data);
+		let action = req.body.queryResult.action;
+		console.log("action in alarm: ", action);
+		if(action === 'takeThreadControl'){
+			takeThreadControl(req,res);
+		}
+		// return res.json({"fulfillmentText" : "this is dummy"});
+	});
+	
+	//for book bot chat
 	api.post('/post', (req, res) => {
 		const action = req.body.queryResult.action;
 		const searchBook = req.body.queryResult.parameters.searchBook;
@@ -207,7 +254,12 @@ export default ({ config, db }) => {
 					});
 				break;
 
+			case 'passThreadControl':
+					passThreadControl(req,res);
+				break;
+
 		}
+		console.log(req.body.originalDetectIntentRequest.payload.data);
 	});
 
 	api.get('/', (req, res) => {
@@ -216,5 +268,10 @@ export default ({ config, db }) => {
 		return res.json({data});
 	});
 
+
+
 	return api;	
+
+	
+
 }
