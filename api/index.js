@@ -242,7 +242,7 @@ export default ({ config, db }) => {
 						console.log(result);
 						console.log(result.length);
 						for(var i = 0; i < result.length; i++){
-							botMessage += `Book: "${result[i].book}"\nAuthor: "${result[i].author}` ;
+							botMessage += `Book: "${result[i].book}"\nAuthor: "${result[i].author}\n\n` ;
 						}
 						if(result.length > 0){
 							res.json({"fulfillmentText" : botMessage});
